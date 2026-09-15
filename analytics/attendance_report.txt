@@ -1,0 +1,60 @@
+================================
+       ATTENDANCE REPORT
+================================
+
+OVERALL SUMMARY
+----------------
+Total Students: 5
+Total Records: 10
+Total Present: 8
+Total Absent: 2
+Overall Attendance: 80.00%
+
+STUDENT ATTENDANCE
+------------------
+Student ID: 24BCA7237
+Present: 2
+Absent: 0
+Attendance: 100.00%
+STATUS: GOOD
+------------------
+Student ID: 24BCA7286
+Present: 1
+Absent: 1
+Attendance: 50.00%
+STATUS: LOW ATTENDANCE
+------------------
+Student ID: 24BCA7313
+Present: 2
+Absent: 0
+Attendance: 100.00%
+STATUS: GOOD
+------------------
+Student ID: 24BCA7428
+Present: 2
+Absent: 0
+Attendance: 100.00%
+STATUS: GOOD
+------------------
+Student ID: 24BCA7913
+Present: 1
+Absent: 1
+Attendance: 50.00%
+STATUS: LOW ATTENDANCE
+------------------
+
+LOW ATTENDANCE STUDENTS
+-----------------------
+24BCA7286 - 50.00%
+24BCA7913 - 50.00%
+
+DAILY ATTENDANCE
+----------------
+Date: 2026-09-15
+Present: 4
+Absent: 1
+------------------
+Date: 2026-09-16
+Present: 4
+Absent: 1
+------------------
