@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Result · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Attendance Result<span class="subtitle" id="topSubtitle">—</span></div>
+      <div class="topbar-actions">
+        <a href="history.html" class="btn btn-secondary"><i data-lucide="history" class="icon"></i> View History</a>
+        <a href="take-attendance.html" class="btn btn-primary"><i data-lucide="camera" class="icon"></i> New Session</a>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="result-banner">
+        <div class="result-icon"><i data-lucide="check-circle-2" class="icon" style="width:26px;height:26px;"></i></div>
+        <div>
+          <h2>Attendance Successfully Marked</h2>
+          <p id="bannerMeta">—</p>
+        </div>
+      </div>
+
+      <div class="result-stats">
+        <div class="card stat-card">
+          <div class="stat-icon blue"><i data-lucide="users" class="icon"></i></div>
+          <div class="stat-value" id="rTotal">—</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon green"><i data-lucide="user-check" class="icon"></i></div>
+          <div class="stat-value" id="rPresent">—</div>
+          <div class="stat-label">Present</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon red"><i data-lucide="user-x" class="icon"></i></div>
+          <div class="stat-value" id="rAbsent">—</div>
+          <div class="stat-label">Absent</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon amber"><i data-lucide="scan-face" class="icon"></i></div>
+          <div class="stat-value" id="rAccuracy">—</div>
+          <div class="stat-label">Recognition Accuracy</div>
+        </div>
+      </div>
+
+      <div class="card panel" style="margin-bottom:0;">
+        <div class="table-toolbar">
+          <h3>Student Recognition Details</h3>
+          <div class="search-box">
+            <i data-lucide="search" class="icon"></i>
+            <input type="text" id="searchInput" placeholder="Search student name or ID">
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Student ID</th><th>Name</th><th>Status</th><th>Confidence</th><th>Recognition</th></tr>
+            </thead>
+            <tbody id="resultTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("attendance");
+
+  const session = SAS.getCurrentSession();
+  if (!session || !session.result) {
+    window.location.href = "take-attendance.html";
+  }
+
+  const r = session.result;
+  document.getElementById("topSubtitle").textContent = `${session.course} · ${session.room}`;
+  document.getElementById("bannerMeta").textContent =
+    `${session.course} · Room ${session.room} · ${session.date} at ${session.time}`;
+  document.getElementById("rTotal").textContent = r.total;
+  document.getElementById("rPresent").textContent = r.present;
+  document.getElementById("rAbsent").textContent = r.absent;
+  document.getElementById("rAccuracy").textContent = r.accuracy + "%";
+
+  function renderRows(list) {
+    document.getElementById("resultTableBody").innerHTML = list.map(s => `
+      <tr>
+        <td>${s.id}</td>
+        <td>
+          <div class="student-cell">
+            <div class="avatar" style="width:30px;height:30px;font-size:11px;background:${SAS.colorFor(s.id)}">${SAS.initials(s.name)}</div>
+            ${s.name}
+          </div>
+        </td>
+        <td><span class="badge ${s.status === 'Present' ? 'badge-present' : 'badge-absent'}"><span class="badge-dot"></span>${s.status}</span></td>
+        <td>
+          ${s.confidence ? `
+          <div class="confidence-bar-wrap">
+            <div class="confidence-bar"><span style="width:${s.confidence}%"></span></div>
+            <span style="font-size:12.5px; color:var(--slate-500);">${s.confidence}%</span>
+          </div>` : `<span style="color:var(--slate-400); font-size:12.5px;">—</span>`}
+        </td>
+        <td>${s.status === 'Present'
+          ? `<span style="color:var(--success); font-size:13px; display:flex; align-items:center; gap:5px;"><i data-lucide="check" class="icon" style="width:15px;height:15px;"></i> Face matched</span>`
+          : `<span style="color:var(--slate-400); font-size:13px; display:flex; align-items:center; gap:5px;"><i data-lucide="x" class="icon" style="width:15px;height:15px;"></i> Not detected</span>`}</td>
+      </tr>`).join("");
+    lucide.createIcons();
+  }
+  renderRows(r.students);
+
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    renderRows(r.students.filter(s => s.name.toLowerCase().includes(q) || s.id.includes(q)));
+  });
+
+  // Save this session into attendance history exactly once.
+  if (!session.saved) {
+    SAS.saveSession({
+      id: "S" + Math.floor(1000 + Math.random() * 9000),
+      date: session.date, time: formatTime(session.time),
+      course: session.course, room: session.room,
+      total: r.total, present: r.present, absent: r.absent,
+    });
+    SAS.setCurrentSession(Object.assign({}, session, { saved: true }));
+  }
+
+  function formatTime(t) {
+    if (!t || !t.includes(":")) return t || "";
+    let [h, m] = t.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
+
+  lucide.createIcons();
+</script>
+</body>
+</html>

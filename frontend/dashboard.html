@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Dashboard<span class="subtitle">Welcome back, <span class="js-faculty-name"></span></span></div>
+      <div class="topbar-actions">
+        <button class="icon-btn"><i data-lucide="bell" class="icon"></i><span class="notif-dot"></span></button>
+        <a href="take-attendance.html" class="btn btn-primary"><i data-lucide="camera" class="icon"></i> Take Attendance</a>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="stat-grid">
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div class="stat-icon blue"><i data-lucide="users" class="icon"></i></div>
+            <span class="stat-trend"><i data-lucide="trending-up" class="icon" style="width:13px;height:13px;"></i></span>
+          </div>
+          <div class="stat-value" id="statTotal">14</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div class="stat-icon green"><i data-lucide="user-check" class="icon"></i></div>
+          </div>
+          <div class="stat-value" id="statPresent">13</div>
+          <div class="stat-label">Present Today</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div class="stat-icon red"><i data-lucide="user-x" class="icon"></i></div>
+          </div>
+          <div class="stat-value" id="statAbsent">1</div>
+          <div class="stat-label">Absent Today</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-top">
+            <div class="stat-icon amber"><i data-lucide="percent" class="icon"></i></div>
+          </div>
+          <div class="stat-value" id="statPct">93%</div>
+          <div class="stat-label">Attendance Rate</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <div>
+          <div class="card panel">
+            <div class="panel-head">
+              <h3>Recent Attendance Sessions</h3>
+              <a href="history.html" class="link">View all</a>
+            </div>
+            <div id="sessionList"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card panel">
+            <div class="panel-head"><h3>Today's Snapshot</h3></div>
+            <div class="donut-wrap">
+              <div class="donut" id="donutChart">
+                <div class="donut-center"><div class="pct" id="donutPct">93%</div><div class="lbl">Present</div></div>
+              </div>
+              <div class="donut-legend">
+                <div class="legend-item"><span class="legend-dot" style="background:var(--indigo)"></span> Present</div>
+                <div class="legend-item"><span class="legend-dot" style="background:var(--slate-200)"></span> Absent</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card panel" style="margin-bottom:0;">
+            <div class="panel-head"><h3>Notifications</h3></div>
+            <div class="notif-item">
+              <div class="notif-dot-icon"></div>
+              <div><div class="text">Attendance for Data Structures (AB1-301) marked successfully.</div><div class="time">Today · 9:12 AM</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot-icon" style="background:var(--warning)"></div>
+              <div><div class="text">4 students were absent in Computer Networks on Sep 10.</div><div class="time">2 days ago</div></div>
+            </div>
+            <div class="notif-item">
+              <div class="notif-dot-icon" style="background:var(--cyan)"></div>
+              <div><div class="text">Face recognition model accuracy improved to 96%.</div><div class="time">3 days ago</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("dashboard");
+
+  const stats = SAS.dashboardStats();
+  document.getElementById("statTotal").textContent = stats.totalStudents;
+  document.getElementById("statPresent").textContent = stats.present;
+  document.getElementById("statAbsent").textContent = stats.absent;
+  document.getElementById("statPct").textContent = stats.pct + "%";
+  document.getElementById("donutPct").textContent = stats.pct + "%";
+  document.getElementById("donutChart").style.background =
+    `conic-gradient(var(--indigo) 0% ${stats.pct}%, var(--slate-200) ${stats.pct}% 100%)`;
+
+  const sessionIcons = { "Data Structures": "boxes", "Operating Systems": "cpu", "Database Management Systems": "database", "Computer Networks": "network", "Software Engineering": "code-2" };
+  const sessions = SAS.getSessions().slice(0, 5);
+  document.getElementById("sessionList").innerHTML = sessions.map(s => {
+    const pct = Math.round((s.present / s.total) * 100);
+    return `
+    <div class="session-row">
+      <div class="session-icon"><i data-lucide="${sessionIcons[s.course] || 'book-open'}" class="icon"></i></div>
+      <div class="session-info">
+        <div class="title">${s.course}</div>
+        <div class="meta">${s.room} · ${s.date} · ${s.time}</div>
+      </div>
+      <div class="session-pct" style="color:${pct >= 85 ? 'var(--success)' : pct >= 70 ? 'var(--warning)' : 'var(--danger)'}">${pct}%</div>
+    </div>`;
+  }).join("");
+
+  lucide.createIcons();
+</script>
+</body>
+</html>
