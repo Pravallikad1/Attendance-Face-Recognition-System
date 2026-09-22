@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Take Attendance · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Take Attendance<span class="subtitle">Capture one group photo to mark an entire class</span></div>
+      <div class="topbar-actions">
+        <button class="icon-btn"><i data-lucide="bell" class="icon"></i><span class="notif-dot"></span></button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- Workflow -->
+      <div class="workflow-track">
+        <div class="workflow-step done" id="wf-1"><div class="workflow-node">1</div><div class="workflow-label">Course Selected</div></div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-step active" id="wf-2"><div class="workflow-node">2</div><div class="workflow-label">Group Photo</div></div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-step" id="wf-3"><div class="workflow-node">3</div><div class="workflow-label">Face Detection</div></div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-step" id="wf-4"><div class="workflow-node">4</div><div class="workflow-label">Recognition</div></div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-step" id="wf-5"><div class="workflow-node">5</div><div class="workflow-label">Attendance</div></div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Left: session details -->
+        <div class="card panel">
+          <div class="panel-head"><h3>Session Details</h3></div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="course">Course / Subject</label>
+              <select id="course"></select>
+            </div>
+            <div class="field">
+              <label for="room">Classroom / Room Number</label>
+              <select id="room"></select>
+            </div>
+            <div class="field">
+              <label for="date">Date</label>
+              <input type="date" id="date">
+            </div>
+            <div class="field">
+              <label for="time">Session Time</label>
+              <input type="time" id="time">
+            </div>
+            <div class="field field-full">
+              <label for="registered">Registered Students</label>
+              <input type="text" id="registered" value="14 students registered for this course" disabled>
+            </div>
+          </div>
+
+          <div class="panel-head" style="margin-top:4px;"><h3>Group Photo</h3></div>
+
+          <div id="uploadZone" class="upload-zone">
+            <div class="upload-icon-wrap"><i data-lucide="image-plus" class="icon" style="width:26px;height:26px;"></i></div>
+            <h4>Drag &amp; drop the classroom photo here</h4>
+            <p>or use one of the options below · JPG, PNG up to 10MB</p>
+            <div class="upload-btn-row">
+              <button type="button" class="btn btn-secondary" id="uploadBtn"><i data-lucide="upload" class="icon"></i> Upload Group Photo</button>
+              <button type="button" class="btn btn-secondary" id="captureBtn"><i data-lucide="camera" class="icon"></i> Capture Photo</button>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+          </div>
+
+          <div id="previewZone" class="preview-wrap" style="display:none; margin-top:0;">
+            <img id="previewImg" alt="Uploaded classroom photo preview">
+            <div class="preview-tag" id="previewTag">classroom.jpg</div>
+            <div class="preview-actions">
+              <button type="button" class="icon-btn" id="changePhotoBtn" title="Change photo" style="background:rgba(255,255,255,0.9);"><i data-lucide="refresh-cw" class="icon"></i></button>
+              <button type="button" class="icon-btn" id="removePhotoBtn" title="Remove photo" style="background:rgba(255,255,255,0.9); color:var(--danger);"><i data-lucide="trash-2" class="icon"></i></button>
+            </div>
+          </div>
+
+          <div style="margin-top:22px;">
+            <button type="button" class="btn btn-primary btn-block" id="startBtn" disabled>
+              <i data-lucide="scan-face" class="icon"></i> Start Face Recognition
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: tips / live summary -->
+        <div>
+          <div class="card panel">
+            <div class="panel-head"><h3>Session Summary</h3></div>
+            <div class="session-row" style="border:none; padding:6px 0;">
+              <div class="session-icon"><i data-lucide="book-open" class="icon"></i></div>
+              <div class="session-info"><div class="title" id="sumCourse">Select a course</div><div class="meta" id="sumRoom">—</div></div>
+            </div>
+            <div class="session-row" style="border:none; padding:6px 0;">
+              <div class="session-icon"><i data-lucide="calendar" class="icon"></i></div>
+              <div class="session-info"><div class="title" id="sumDate">—</div><div class="meta" id="sumTime">—</div></div>
+            </div>
+          </div>
+
+          <div class="card panel" style="margin-bottom:0;">
+            <div class="panel-head"><h3>Tips for a Clear Photo</h3></div>
+            <div class="notif-item"><div class="notif-dot-icon" style="background:var(--indigo)"></div><div class="text">Capture the photo from the front of the classroom, at eye level.</div></div>
+            <div class="notif-item"><div class="notif-dot-icon" style="background:var(--indigo)"></div><div class="text">Make sure lighting is even — avoid strong backlight from windows.</div></div>
+            <div class="notif-item"><div class="notif-dot-icon" style="background:var(--indigo)"></div><div class="text">Ask students to briefly face the camera before you capture.</div></div>
+          </div>
+        </div>
+      </div>
+
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("attendance");
+
+  const courseSel = document.getElementById("course");
+  const roomSel = document.getElementById("room");
+  const dateInput = document.getElementById("date");
+  const timeInput = document.getElementById("time");
+
+  const now = new Date();
+  dateInput.value = now.toISOString().split("T")[0];
+  timeInput.value = now.toTimeString().slice(0, 5);
+
+  async function initDropdowns() {
+    try {
+      const courses = await SAS.loadCourses();
+      if (courses && courses.length > 0) {
+        courseSel.innerHTML = '<option value="">Select course</option>' + courses.map(c => 
+          typeof c === "object" ? `<option value="${c.course_id}">${c.course_id} - ${c.course_name}</option>` : `<option value="${c}">${c}</option>`
+        ).join("");
+      }
+
+      const rooms = await SAS.loadRooms();
+      if (rooms && rooms.length > 0) {
+        roomSel.innerHTML = '<option value="">Select room</option>' + rooms.map(r => 
+          typeof r === "object" ? `<option value="${r.room_number}">Room ${r.room_number}</option>` : `<option value="${r}">Room ${r}</option>`
+        ).join("");
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+  initDropdowns();
+
+  let photoDataUrl = null;
+  let photoBlob = null;
+
+  function updateSummary() {
+    document.getElementById("sumCourse").textContent = courseSel.options[courseSel.selectedIndex]?.text || courseSel.value || "Select a course";
+    document.getElementById("sumRoom").textContent = roomSel.value ? `Room ${roomSel.value}` : "—";
+    document.getElementById("sumDate").textContent = dateInput.value || "—";
+    document.getElementById("sumTime").textContent = timeInput.value || "—";
+    checkReady();
+  }
+  [courseSel, roomSel, dateInput, timeInput].forEach(el => el.addEventListener("change", updateSummary));
+  updateSummary();
+
+  function checkReady() {
+    const ready = courseSel.value && roomSel.value && dateInput.value && timeInput.value && photoDataUrl;
+    document.getElementById("startBtn").disabled = !ready;
+  }
+
+  // ---- Upload / drag-drop / capture ----
+  const uploadZone = document.getElementById("uploadZone");
+  const previewZone = document.getElementById("previewZone");
+  const fileInput = document.getElementById("fileInput");
+  const cameraInput = document.getElementById("cameraInput");
+  const previewImg = document.getElementById("previewImg");
+  const previewTag = document.getElementById("previewTag");
+
+  document.getElementById("uploadBtn").addEventListener("click", () => fileInput.click());
+  uploadZone.addEventListener("click", (e) => { if (e.target === uploadZone) fileInput.click(); });
+
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  cameraInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  ["dragenter", "dragover"].forEach(evt =>
+    uploadZone.addEventListener(evt, (e) => { e.preventDefault(); uploadZone.classList.add("dragover"); }));
+  ["dragleave", "drop"].forEach(evt =>
+    uploadZone.addEventListener(evt, (e) => { e.preventDefault(); uploadZone.classList.remove("dragover"); }));
+  uploadZone.addEventListener("drop", (e) => {
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  function handleFile(file) {
+    if (!file.type.startsWith("image/")) { showToast("Please select an image file."); return; }
+    photoBlob = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      photoDataUrl = e.target.result;
+      previewImg.src = photoDataUrl;
+      previewTag.textContent = file.name;
+      uploadZone.style.display = "none";
+      previewZone.style.display = "block";
+      checkReady();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // "Capture Photo" opens device camera
+  document.getElementById("captureBtn").addEventListener("click", () => {
+    cameraInput.click();
+  });
+
+  document.getElementById("changePhotoBtn").addEventListener("click", () => fileInput.click());
+  document.getElementById("removePhotoBtn").addEventListener("click", () => {
+    photoDataUrl = null;
+    photoBlob = null;
+    fileInput.value = "";
+    cameraInput.value = "";
+    previewZone.style.display = "none";
+    uploadZone.style.display = "block";
+    checkReady();
+  });
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    SAS.setCurrentSession({
+      course: courseSel.value,
+      courseName: courseSel.options[courseSel.selectedIndex]?.text || courseSel.value,
+      room: roomSel.value,
+      date: dateInput.value,
+      time: timeInput.value,
+      photo: photoDataUrl,
+    });
+    window.location.href = "processing.html";
+  });
+
+  lucide.createIcons();
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance History · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Attendance History<span class="subtitle">Browse and filter past sessions</span></div>
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" id="exportBtn"><i data-lucide="download" class="icon"></i> Export Report</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="card panel">
+        <div class="table-toolbar">
+          <h3>All Sessions</h3>
+          <div class="search-box">
+            <i data-lucide="search" class="icon"></i>
+            <input type="text" id="searchInput" placeholder="Search course or room">
+          </div>
+        </div>
+
+        <div class="filter-row" style="margin-bottom:18px;">
+          <select id="filterCourse"><option value="">All Courses</option></select>
+          <select id="filterRoom"><option value="">All Rooms</option></select>
+          <input type="date" id="filterDate">
+          <button class="btn btn-ghost" id="clearFilters"><i data-lucide="x" class="icon"></i> Clear</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Date</th><th>Course</th><th>Room</th><th>Present</th><th>Absent</th><th>Percentage</th><th></th></tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+        <p id="emptyState" style="display:none; text-align:center; padding:36px 0; color:var(--slate-500); font-size:14px;">
+          No sessions match these filters.
+        </p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("history");
+
+  const courseSel = document.getElementById("filterCourse");
+  const roomSel = document.getElementById("filterRoom");
+  courseSel.innerHTML += SAS.COURSES.map(c => `<option>${c}</option>`).join("");
+  roomSel.innerHTML += SAS.ROOMS.map(r => `<option>${r}</option>`).join("");
+
+  const allSessions = SAS.getSessions();
+
+  function render() {
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    const course = courseSel.value;
+    const room = roomSel.value;
+    const date = document.getElementById("filterDate").value;
+
+    const filtered = allSessions.filter(s =>
+      (!course || s.course === course) &&
+      (!room || s.room === room) &&
+      (!date || s.date === date) &&
+      (!q || s.course.toLowerCase().includes(q) || s.room.toLowerCase().includes(q))
+    );
+
+    document.getElementById("emptyState").style.display = filtered.length ? "none" : "block";
+
+    document.getElementById("tableBody").innerHTML = filtered.map(s => {
+      const pct = Math.round((s.present / s.total) * 100);
+      const color = pct >= 85 ? "var(--success)" : pct >= 70 ? "var(--warning)" : "var(--danger)";
+      return `
+      <tr>
+        <td>${s.date}<div style="font-size:12px; color:var(--slate-500);">${s.time}</div></td>
+        <td>${s.course}</td>
+        <td>${s.room}</td>
+        <td><span class="badge badge-present">${s.present}</span></td>
+        <td><span class="badge badge-absent">${s.absent}</span></td>
+        <td><span style="font-weight:700; color:${color};">${pct}%</span></td>
+        <td><button class="btn btn-ghost view-btn" data-id="${s.id}"><i data-lucide="eye" class="icon"></i> View</button></td>
+      </tr>`;
+    }).join("");
+
+    lucide.createIcons();
+    document.querySelectorAll(".view-btn").forEach(btn => {
+      btn.addEventListener("click", () => viewSession(btn.dataset.id));
+    });
+  }
+
+  function viewSession(id) {
+    const s = allSessions.find(x => x.id === id);
+    if (!s) return;
+    SAS.setCurrentSession({
+      course: s.course, room: s.room, date: s.date, time: s.time,
+      photo: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=900&q=80",
+      result: SAS.simulateRecognitionResult(),
+      saved: true,
+    });
+    window.location.href = "result.html";
+  }
+
+  [courseSel, roomSel].forEach(el => el.addEventListener("change", render));
+  document.getElementById("filterDate").addEventListener("change", render);
+  document.getElementById("searchInput").addEventListener("input", render);
+  document.getElementById("clearFilters").addEventListener("click", () => {
+    courseSel.value = ""; roomSel.value = ""; document.getElementById("filterDate").value = "";
+    document.getElementById("searchInput").value = "";
+    render();
+  });
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    showToast("Export will be available once the backend is connected.");
+  });
+
+  render();
+  lucide.createIcons();
+</script>
+</body>
+</html>

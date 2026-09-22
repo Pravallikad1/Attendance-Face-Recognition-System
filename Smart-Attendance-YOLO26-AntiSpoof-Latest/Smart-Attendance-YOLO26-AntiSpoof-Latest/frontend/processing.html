@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Processing · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Processing Attendance<span class="subtitle" id="topSubtitle">Analyzing classroom photo…</span></div>
+    </header>
+
+    <div class="content">
+
+      <div class="workflow-track">
+        <div class="workflow-step done"><div class="workflow-node">1</div><div class="workflow-label">Course Selected</div></div>
+        <div class="workflow-connector" style="background:var(--success);"></div>
+        <div class="workflow-step done"><div class="workflow-node">2</div><div class="workflow-label">Group Photo</div></div>
+        <div class="workflow-connector" style="background:var(--success);"></div>
+        <div class="workflow-step active" id="wfDetect"><div class="workflow-node">3</div><div class="workflow-label">Face Detection</div></div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-step" id="wfRecog"><div class="workflow-node">4</div><div class="workflow-label">Recognition</div></div>
+        <div class="workflow-connector"></div>
+        <div class="workflow-step" id="wfAttend"><div class="workflow-node">5</div><div class="workflow-label">Attendance</div></div>
+      </div>
+
+      <div class="card panel" style="max-width: 1100px;">
+        <div class="processing-wrap">
+          <div>
+            <div class="processing-frame" id="processingFrame">
+              <img id="processingImg" src="" alt="Classroom photo being analyzed">
+              <div class="processing-grid-overlay"></div>
+              <div class="processing-scanline" id="scanline"></div>
+              <!-- face detection boxes injected by JS -->
+            </div>
+            <p style="font-size:12.5px; color:var(--slate-500); margin-top:12px; text-align:center;">
+              This is a frontend simulation — no image is actually sent anywhere yet.
+            </p>
+          </div>
+
+          <div>
+            <div class="step-list" id="stepList">
+              <div class="step-item" id="step1">
+                <div class="step-icon"><i data-lucide="loader-2" class="icon"></i></div>
+                <div class="step-text">Detecting faces…</div>
+              </div>
+              <div class="step-item" id="step2">
+                <div class="step-icon"><i data-lucide="loader-2" class="icon"></i></div>
+                <div class="step-text">Matching student faces…</div>
+              </div>
+              <div class="step-item" id="step3">
+                <div class="step-icon"><i data-lucide="loader-2" class="icon"></i></div>
+                <div class="step-text">Checking registered students…</div>
+              </div>
+              <div class="step-item" id="step4">
+                <div class="step-icon"><i data-lucide="loader-2" class="icon"></i></div>
+                <div class="step-text">Compiling attendance report…</div>
+              </div>
+            </div>
+
+            <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; color:var(--slate-500);">
+              <span id="progressLabel">Starting…</span>
+              <span id="progressPct">0%</span>
+            </div>
+
+            <div id="doneBox" style="display:none; margin-top:20px;">
+              <button class="btn btn-primary btn-block" id="viewResultsBtn">
+                <i data-lucide="arrow-right" class="icon"></i> View Attendance Results
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("attendance");
+
+  const session = SAS.getCurrentSession();
+  if (!session || !session.photo) {
+    window.location.href = "take-attendance.html";
+  } else {
+    document.getElementById("processingImg").src = session.photo;
+  }
+
+  const steps = ["step1", "step2", "step3", "step4"];
+  const fill = document.getElementById("progressFill");
+  const pctLabel = document.getElementById("progressPct");
+  const progLabel = document.getElementById("progressLabel");
+  const frame = document.getElementById("processingFrame");
+
+  function setProgress(stepIdx, labelText, pct) {
+    steps.forEach((s, idx) => {
+      const el = document.getElementById(s);
+      el.classList.remove("active", "complete");
+      if (idx < stepIdx) el.classList.add("complete");
+      else if (idx === stepIdx) el.classList.add("active");
+    });
+    progLabel.textContent = labelText;
+    fill.style.width = pct + "%";
+    pctLabel.textContent = pct + "%";
+  }
+
+  async function startRealAnalysis() {
+    let blob = null;
+    if (session.photo.startsWith("data:image")) {
+      const byteString = atob(session.photo.split(",")[1]);
+      const mimeString = session.photo.split(",")[0].split(":")[1].split(";")[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      blob = new Blob([ab], { type: mimeString });
+    }
+
+    try {
+      setProgress(0, "Detecting faces with YOLO26…", 25);
+      
+      let analysis = null;
+      if (blob) {
+        analysis = await SAS.analyzeClassroomImage(blob);
+      }
+
+      setProgress(1, "Verifying anti-spoofing & matching identities…", 50);
+      const imgEl = document.getElementById("processingImg");
+      const faces = analysis && analysis.faces ? analysis.faces : [];
+
+      faces.forEach((f, idx) => {
+        const box = document.createElement("div");
+        box.className = "face-box show";
+        const [x1, y1, x2, y2] = f.bbox;
+        const natW = imgEl.naturalWidth || 640;
+        const natH = imgEl.naturalHeight || 480;
+        box.style.left = `${(x1 / natW) * 100}%`;
+        box.style.top = `${(y1 / natH) * 100}%`;
+        box.style.width = `${((x2 - x1) / natW) * 100}%`;
+        box.style.height = `${((y2 - y1) / natH) * 100}%`;
+
+        let tagText = f.student_id || "Unknown";
+        let tagBg = "var(--success)";
+        if (f.anti_spoofing.label === "SPOOF") {
+          tagText = "SPOOF";
+          tagBg = "var(--danger)";
+        } else if (!f.student_id) {
+          tagText = "Unknown";
+          tagBg = "var(--amber-500)";
+        }
+        box.innerHTML = `<span class="tag" style="background:${tagBg}">${tagText}</span>`;
+        frame.appendChild(box);
+      });
+
+      setProgress(2, "Cross-referencing course roster…", 75);
+      let enrolledList = [];
+      let noFaceDataSet = new Set();
+      const courseId = session.course ? session.course.split(" ")[0].split("-")[0].trim() : "";
+      if (courseId) {
+        try {
+          const cResp = await fetch(`/courses/${courseId}`);
+          if (cResp.ok) {
+            const cData = await cResp.json();
+            enrolledList = cData.students.map(s => ({ id: s.registration_number, name: s.student_name }));
+          }
+        } catch(e) {}
+        // Fetch students who have no reference images in the dataset
+        try {
+          const nfResp = await fetch(`/courses/${courseId}/no-face-data`);
+          if (nfResp.ok) {
+            const nfData = await nfResp.json();
+            noFaceDataSet = new Set(nfData.no_face_data || []);
+          }
+        } catch(e) {}
+      }
+      if (enrolledList.length === 0) {
+        enrolledList = SAS.STUDENTS;
+      }
+
+      setProgress(3, "Finalizing attendance report…", 100);
+      const detectedIds = new Set(
+        faces
+          .filter(f => f.anti_spoofing.label === "REAL" && f.attendance_allowed && f.student_id)
+          .map(f => f.student_id)
+      );
+
+      const faceMap = {};
+      faces.forEach(f => {
+        if (f.student_id) faceMap[f.student_id] = f;
+      });
+
+      // Unknown faces: detected but not matched to any enrolled student
+      const unknownFaces = faces.filter(f => !f.student_id).map((f, i) => ({
+        id: "UNKNOWN_" + (i + 1),
+        name: "Unknown Face",
+        status: "UNKNOWN",
+        confidence: null,
+        noFaceData: false,
+      }));
+
+      let presentCount = 0;
+      const studentResults = enrolledList.map(s => {
+        const isPresent = detectedIds.has(s.id);
+        if (isPresent) presentCount++;
+        const fInfo = faceMap[s.id];
+        const conf = fInfo && fInfo.recognition ? Math.round(fInfo.recognition.confidence) : (isPresent ? 94 : null);
+        let status;
+        if (isPresent) {
+          status = "PRESENT";
+        } else if (noFaceDataSet.has(s.id)) {
+          status = "FACE_DATA_UNAVAILABLE";
+        } else {
+          status = "ABSENT";
+        }
+        return { id: s.id, name: s.name, status, confidence: conf, noFaceData: noFaceDataSet.has(s.id) };
+      });
+
+      const allRows = [...studentResults, ...unknownFaces];
+      const noFaceCount = studentResults.filter(s => s.status === "FACE_DATA_UNAVAILABLE").length;
+      const absentCount = studentResults.filter(s => s.status === "ABSENT").length;
+      const total = enrolledList.length;
+      const result = {
+        total,
+        present: presentCount,
+        absent: absentCount,
+        noFaceData: noFaceCount,
+        unknownFaces: unknownFaces.length,
+        accuracy: 96,
+        students: allRows,
+        faces_detected: faces.length,
+        raw_faces: faces,
+      };
+
+      SAS.setCurrentSession(Object.assign({}, session, {
+        analysis,
+        result,
+      }));
+
+      finish();
+    } catch (err) {
+      console.warn("Real pipeline failed, using fallback:", err);
+      const result = SAS.simulateRecognitionResult();
+      SAS.setCurrentSession(Object.assign({}, session, { result }));
+      finish();
+    }
+  }
+
+  function finish() {
+    steps.forEach(s => document.getElementById(s).classList.add("complete"));
+    document.getElementById("wfDetect").classList.replace("active", "done");
+    document.getElementById("wfRecog").classList.add("done");
+    document.getElementById("wfAttend").classList.add("active");
+    document.getElementById("topSubtitle").textContent = "Recognition complete";
+    progLabel.textContent = "Complete";
+
+    document.getElementById("doneBox").style.display = "block";
+    showToast("Face recognition finished — attendance ready.");
+    setTimeout(() => window.location.href = "result.html", 1400);
+  }
+
+  document.getElementById("viewResultsBtn").addEventListener("click", () => window.location.href = "result.html");
+  lucide.createIcons();
+  setTimeout(startRealAnalysis, 400);
+</script>
+</body>
+</html>

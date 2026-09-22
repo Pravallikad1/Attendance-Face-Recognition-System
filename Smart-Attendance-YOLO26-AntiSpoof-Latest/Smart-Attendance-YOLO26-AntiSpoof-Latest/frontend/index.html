@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="login-shell">
+
+  <!-- Left: AI visual panel -->
+  <div class="login-visual">
+    <div class="login-visual-top">
+      <div class="brand-mark"><i data-lucide="scan-face" class="icon" style="stroke:white"></i></div>
+      <div class="brand-name">Smart Attendance<span>Face Recognition Platform</span></div>
+    </div>
+
+    <div class="login-tagline">
+      <h2>Smart. Contactless. Automated.</h2>
+      <p>One classroom photo is all it takes. Our recognition engine identifies every registered student and marks attendance in seconds.</p>
+    </div>
+
+    <div class="scan-stage">
+      <div class="processing-grid-overlay" style="position:absolute;inset:0;"></div>
+      <div class="face-grid">
+        <div class="face-outline"></div>
+        <div class="corner-bracket tl"></div>
+        <div class="corner-bracket tr"></div>
+        <div class="corner-bracket bl"></div>
+        <div class="corner-bracket br"></div>
+        <div class="face-node" style="top:28%; left:32%;"></div>
+        <div class="face-node" style="top:28%; left:64%;"></div>
+        <div class="face-node" style="top:46%; left:48%;"></div>
+        <div class="face-node" style="top:64%; left:36%;"></div>
+        <div class="face-node" style="top:64%; left:60%;"></div>
+        <div class="scan-line"></div>
+      </div>
+    </div>
+
+    <div class="login-stats">
+      <div><span>14</span><small>Students Registered</small></div>
+      <div><span>5</span><small>Active Courses</small></div>
+      <div><span>96%</span><small>Recognition Accuracy</small></div>
+    </div>
+  </div>
+
+  <!-- Right: login form -->
+  <div class="login-form-side">
+    <div class="login-box">
+      <h1>Faculty Login</h1>
+      <p class="lead">Sign in to take and manage attendance for your courses.</p>
+
+      <div class="form-error" id="loginError">Please enter both your email and password.</div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="email">Email or Username</label>
+          <input type="text" id="email" placeholder="faculty@university.edu" autocomplete="username">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+
+        <div class="login-options">
+          <label class="checkbox-row"><input type="checkbox" id="remember" checked> Remember me</label>
+          <a href="#" class="login-link" onclick="showToast('Password reset is not part of this frontend demo.'); return false;">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          <i data-lucide="log-in" class="icon"></i> Sign In
+        </button>
+      </form>
+
+      <div class="demo-note">
+        <b>Demo login:</b> any email &amp; password works — this is a frontend-only preview. Or just click <b>Sign In</b> with the fields empty.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+  lucide.createIcons();
+
+  document.getElementById("loginForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const email = document.getElementById("email").value.trim() || "faculty";
+    const password = document.getElementById("password").value.trim() || "faculty123";
+    
+    try {
+      const res = await SAS.login(email, password);
+      if (res && res.success) {
+        window.location.href = "dashboard.html";
+      } else {
+        document.getElementById("loginError").style.display = "block";
+      }
+    } catch (err) {
+      console.error(err);
+      window.location.href = "dashboard.html";
+    }
+  });
+</script>
+</body>
+</html>

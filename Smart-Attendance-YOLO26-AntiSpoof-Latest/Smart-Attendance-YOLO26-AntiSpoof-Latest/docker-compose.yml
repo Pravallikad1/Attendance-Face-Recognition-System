@@ -1,0 +1,16 @@
+services:
+  smart-attendance:
+    build: .
+    container_name: smart_attendance_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./attendance_final.db:/app/attendance_final.db
+      - ./output:/app/output
+      - ./dataset:/app/dataset
+    environment:
+      - DATABASE_URL=sqlite:////app/attendance_final.db
+      - SECRET_KEY=smart-attendance-super-secret-key-2026-production
+      - HOST=0.0.0.0
+      - PORT=8000
+    restart: unless-stopped

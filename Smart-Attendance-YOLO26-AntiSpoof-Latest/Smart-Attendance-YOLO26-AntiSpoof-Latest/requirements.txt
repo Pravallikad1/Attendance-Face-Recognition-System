@@ -1,0 +1,15 @@
+ultralytics>=8.4.0
+opencv-python>=4.10.0
+deepface>=0.0.99
+tf-keras==2.21.0
+onnxruntime>=1.18.0
+python-multipart>=0.0.9
+
+fastapi==0.141.1
+uvicorn==0.53.0
+sqlalchemy==2.0.53
+pydantic==2.13.5
+PyJWT>=2.8.0
+bcrypt>=4.0.1
+python-dotenv>=1.0.0
+pytest>=8.0.0

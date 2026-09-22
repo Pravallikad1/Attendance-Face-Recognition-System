@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Result · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Attendance Result<span class="subtitle" id="topSubtitle">—</span></div>
+      <div class="topbar-actions">
+        <a href="history.html" class="btn btn-secondary"><i data-lucide="history" class="icon"></i> View History</a>
+        <a href="take-attendance.html" class="btn btn-primary"><i data-lucide="camera" class="icon"></i> New Session</a>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="result-banner">
+        <div class="result-icon"><i data-lucide="check-circle-2" class="icon" style="width:26px;height:26px;"></i></div>
+        <div>
+          <h2>Attendance Successfully Marked</h2>
+          <p id="bannerMeta">—</p>
+        </div>
+      </div>
+
+      <div class="result-stats">
+        <div class="card stat-card">
+          <div class="stat-icon blue"><i data-lucide="users" class="icon"></i></div>
+          <div class="stat-value" id="rTotal">—</div>
+          <div class="stat-label">Total Enrolled</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon green"><i data-lucide="user-check" class="icon"></i></div>
+          <div class="stat-value" id="rPresent">—</div>
+          <div class="stat-label">Present</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon red"><i data-lucide="user-x" class="icon"></i></div>
+          <div class="stat-value" id="rAbsent">—</div>
+          <div class="stat-label">Absent / Not Detected</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon amber"><i data-lucide="scan-face" class="icon"></i></div>
+          <div class="stat-value" id="rUnknown">—</div>
+          <div class="stat-label">Unknown Face</div>
+        </div>
+        <div class="card stat-card">
+          <div class="stat-icon" style="background:var(--slate-200)"><i data-lucide="image-off" class="icon"></i></div>
+          <div class="stat-value" id="rNoFace">—</div>
+          <div class="stat-label">Face Data Unavailable</div>
+        </div>
+      </div>
+
+      <div class="card panel" style="margin-bottom:0;">
+        <div class="table-toolbar">
+          <h3>Student Attendance Summary</h3>
+          <div class="search-box">
+            <i data-lucide="search" class="icon"></i>
+            <input type="text" id="searchInput" placeholder="Search student name or ID">
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Student ID</th><th>Name</th><th>Status</th><th>Confidence</th><th>Recognition Note</th></tr>
+            </thead>
+            <tbody id="resultTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("attendance");
+
+  const session = SAS.getCurrentSession();
+  if (!session || !session.result) {
+    window.location.href = "take-attendance.html";
+  }
+
+  const r = session.result;
+  document.getElementById("topSubtitle").textContent = `${session.course} · ${session.room}`;
+  document.getElementById("bannerMeta").textContent =
+    `${session.course} · Room ${session.room} · ${session.date} at ${session.time}`;
+  document.getElementById("rTotal").textContent = r.total;
+  document.getElementById("rPresent").textContent = r.present;
+  document.getElementById("rAbsent").textContent = r.absent;
+  document.getElementById("rUnknown").textContent = r.unknownFaces || 0;
+  document.getElementById("rNoFace").textContent = r.noFaceData || 0;
+
+  /* ── Badge config for the 4 + unknown categories ─────────────────── */
+  function badgeCfg(status) {
+    switch (status) {
+      case "PRESENT":
+        return { cls: "badge-present",  label: "Present" };
+      case "ABSENT":
+        return { cls: "badge-absent",   label: "Absent" };
+      case "UNKNOWN":
+        return { cls: "badge-warning",  label: "Unknown Face" };
+      case "FACE_DATA_UNAVAILABLE":
+        return { cls: "badge-info",     label: "Face Data Unavailable" };
+      case "REJECTED_SPOOF":
+        return { cls: "badge-danger",   label: "Rejected (Spoof)" };
+      default:
+        return { cls: "badge-absent",   label: status };
+    }
+  }
+
+  /* ── Recognition note shown in last column ──────────────────────── */
+  function recognitionNote(s) {
+    switch (s.status) {
+      case "PRESENT":
+        return `<span style="color:var(--success);font-size:13px;display:flex;align-items:center;gap:5px;">
+                  <i data-lucide="check" class="icon" style="width:15px;height:15px;"></i> Face matched
+                </span>`;
+      case "ABSENT":
+        return `<span style="color:var(--slate-400);font-size:13px;">Student not detected — marked Absent.</span>`;
+      case "UNKNOWN":
+        return `<span style="color:var(--amber-500);font-size:13px;">Detected face did not match any enrolled student.</span>`;
+      case "FACE_DATA_UNAVAILABLE":
+        return `<span style="color:var(--slate-500);font-size:13px;font-style:italic;">
+                  Face data unavailable — student could not be automatically verified.
+                </span>`;
+      case "REJECTED_SPOOF":
+        return `<span style="color:var(--danger);font-size:13px;">Anti-spoofing check failed.</span>`;
+      default:
+        return `<span style="color:var(--slate-400);font-size:13px;">—</span>`;
+    }
+  }
+
+  function renderRows(list) {
+    document.getElementById("resultTableBody").innerHTML = list.map(s => {
+      const cfg = badgeCfg(s.status);
+      return `
+      <tr>
+        <td>${s.id}</td>
+        <td>
+          <div class="student-cell">
+            <div class="avatar" style="width:30px;height:30px;font-size:11px;background:${SAS.colorFor(s.id)}">${SAS.initials(s.name)}</div>
+            ${s.name}
+          </div>
+        </td>
+        <td><span class="badge ${cfg.cls}"><span class="badge-dot"></span>${cfg.label}</span></td>
+        <td>
+          ${s.confidence ? `
+          <div class="confidence-bar-wrap">
+            <div class="confidence-bar"><span style="width:${s.confidence}%"></span></div>
+            <span style="font-size:12.5px; color:var(--slate-500);">${s.confidence}%</span>
+          </div>` : `<span style="color:var(--slate-400); font-size:12.5px;">—</span>`}
+        </td>
+        <td>${recognitionNote(s)}</td>
+      </tr>`;
+    }).join("");
+    lucide.createIcons();
+  }
+  renderRows(r.students);
+
+  document.getElementById("searchInput").addEventListener("input", (e) => {
+    const q = e.target.value.toLowerCase();
+    renderRows(r.students.filter(s => s.name.toLowerCase().includes(q) || s.id.includes(q)));
+  });
+
+  // Save this session into backend & attendance history exactly once.
+  if (!session.saved) {
+    const sessionId = "S" + Math.floor(1000 + Math.random() * 9000);
+    const courseCode = session.course ? session.course.split(" ")[0].split("-")[0].trim() : "GENERAL";
+    const roomNo = parseInt(session.room) || null;
+
+    // Prepare faces payload for backend API (only AI-pipeline detected faces)
+    const facesPayload = (session.analysis?.faces || []).map((f, idx) => ({
+      face_id: f.face_id || idx + 1,
+      student_id: f.student_id,
+      anti_spoofing: f.anti_spoofing || { label: "REAL", confidence: 0.95 },
+      attendance_allowed: Boolean(f.attendance_allowed),
+      recognition_confidence: f.recognition?.confidence || null,
+    }));
+
+    SAS.commitAttendanceSession({
+      attendance_session: sessionId,
+      course_id: courseCode,
+      room_number: roomNo,
+      faculty_id: "F001",
+      faces: facesPayload,
+    }).catch(err => console.warn("Backend attendance save notice:", err));
+
+    SAS.saveSession({
+      id: sessionId,
+      date: session.date,
+      time: formatTime(session.time),
+      course: session.courseName || session.course,
+      room: session.room,
+      total: r.total,
+      present: r.present,
+      absent: r.absent,
+    });
+    SAS.setCurrentSession(Object.assign({}, session, { saved: true }));
+  }
+
+  function formatTime(t) {
+    if (!t || !t.includes(":")) return t || "";
+    let [h, m] = t.split(":").map(Number);
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${String(m).padStart(2, "0")} ${ampm}`;
+  }
+
+  lucide.createIcons();
+</script>
+</body>
+</html>

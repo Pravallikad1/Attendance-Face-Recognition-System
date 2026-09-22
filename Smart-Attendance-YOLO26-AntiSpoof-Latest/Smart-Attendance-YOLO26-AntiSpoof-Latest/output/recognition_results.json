@@ -1,0 +1,32 @@
+[
+    {
+        "face": "face_1.jpg.jpeg",
+        "student_id": "24BCA7313",
+        "confidence": 100,
+        "status": "RECOGNIZED"
+    },
+    {
+        "face": "face_2.jpg.jpeg",
+        "student_id": "24BCA7237",
+        "confidence": 100,
+        "status": "RECOGNIZED"
+    },
+    {
+        "face": "face_3.jpg.jpeg",
+        "student_id": "24BCA7286",
+        "confidence": 100,
+        "status": "RECOGNIZED"
+    },
+    {
+        "face": "face_4.jpg.jpeg",
+        "student_id": "24BCA7428",
+        "confidence": 100,
+        "status": "RECOGNIZED"
+    },
+    {
+        "face": "face_5.jpg.jpeg",
+        "student_id": "24BCA7913",
+        "confidence": 100,
+        "status": "RECOGNIZED"
+    }
+]

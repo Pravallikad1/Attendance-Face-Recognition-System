@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Details · Smart Attendance System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="sidebarRoot"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-title">Student Details<span class="subtitle">Individual attendance record</span></div>
+      <div class="topbar-actions">
+        <select id="studentSwitcher" style="padding:9px 12px; border-radius:10px; border:1.5px solid var(--slate-200); font-size:13.5px;"></select>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="card" style="margin-bottom:20px;">
+        <div class="profile-head">
+          <div class="avatar profile-avatar" id="pAvatar"></div>
+          <div>
+            <h2 id="pName">—</h2>
+            <div class="profile-meta">
+              <span id="pId">—</span>
+              <span id="pCourseCount">—</span>
+              <span id="pStanding">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mini-stat-grid">
+        <div class="card mini-stat">
+          <div class="stat-value" id="mTotal">—</div>
+          <div class="stat-label">Total Classes</div>
+        </div>
+        <div class="card mini-stat">
+          <div class="stat-value" id="mPresent" style="color:var(--success);">—</div>
+          <div class="stat-label">Present</div>
+        </div>
+        <div class="card mini-stat">
+          <div class="stat-value" id="mAbsent" style="color:var(--danger);">—</div>
+          <div class="stat-label">Absent</div>
+        </div>
+      </div>
+
+      <div class="card panel" style="margin-bottom:20px;">
+        <div class="panel-head"><h3>Attendance Rate</h3></div>
+        <div class="progress-track" style="margin:0 0 8px;"><div class="progress-fill" id="pProgress"></div></div>
+        <p style="font-size:13px; color:var(--slate-500);" id="pProgressLabel">—</p>
+      </div>
+
+      <div class="card panel" style="margin-bottom:0;">
+        <div class="panel-head"><h3>Recent Attendance Records</h3></div>
+        <div style="overflow-x:auto;">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Course</th><th>Room</th><th>Status</th></tr></thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  SAS.requireAuth();
+  renderSidebar("students");
+
+  const switcher = document.getElementById("studentSwitcher");
+  switcher.innerHTML = SAS.STUDENTS.map(s => `<option value="${s.id}">${s.id} — ${s.name}</option>`).join("");
+
+  function getIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("id") || "101";
+  }
+
+  function seededRandom(seed) {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+
+  function render(id) {
+    const student = SAS.STUDENTS.find(s => s.id === id) || SAS.STUDENTS[0];
+    switcher.value = student.id;
+
+    document.getElementById("pAvatar").textContent = SAS.initials(student.name);
+    document.getElementById("pAvatar").style.background = SAS.colorFor(student.id);
+    document.getElementById("pName").textContent = student.name;
+    document.getElementById("pId").innerHTML = `<i data-lucide="hash" class="icon" style="width:13px;height:13px; vertical-align:-2px;"></i> ${student.id}`;
+    document.getElementById("pCourseCount").innerHTML = `<i data-lucide="book-open" class="icon" style="width:13px;height:13px; vertical-align:-2px;"></i> 5 courses enrolled`;
+
+    const seed = parseInt(student.id, 10);
+    const total = 24;
+    const presentRatio = 0.78 + seededRandom(seed) * 0.2;
+    const present = Math.round(total * presentRatio);
+    const absent = total - present;
+    const pct = Math.round((present / total) * 100);
+
+    document.getElementById("mTotal").textContent = total;
+    document.getElementById("mPresent").textContent = present;
+    document.getElementById("mAbsent").textContent = absent;
+    document.getElementById("pProgress").style.width = pct + "%";
+    document.getElementById("pProgressLabel").textContent = `${pct}% overall attendance across all courses`;
+    document.getElementById("pStanding").innerHTML =
+      `<span class="badge ${pct >= 75 ? 'badge-present' : 'badge-absent'}"><span class="badge-dot"></span>${pct >= 75 ? 'Eligible' : 'Attendance Shortage'}</span>`;
+
+    const sessions = SAS.getSessions().slice(0, 8);
+    document.getElementById("recordsBody").innerHTML = sessions.map((s, idx) => {
+      const present = seededRandom(seed + idx) > 0.15;
+      return `
+      <tr>
+        <td>${s.date}</td>
+        <td>${s.course}</td>
+        <td>${s.room}</td>
+        <td><span class="badge ${present ? 'badge-present' : 'badge-absent'}"><span class="badge-dot"></span>${present ? 'Present' : 'Absent'}</span></td>
+      </tr>`;
+    }).join("");
+
+    lucide.createIcons();
+    history.replaceState(null, "", `student-details.html?id=${student.id}`);
+  }
+
+  switcher.addEventListener("change", () => render(switcher.value));
+  render(getIdFromUrl());
+  lucide.createIcons();
+</script>
+</body>
+</html>
